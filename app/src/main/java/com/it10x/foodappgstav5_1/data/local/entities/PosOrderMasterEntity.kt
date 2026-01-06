@@ -1,0 +1,69 @@
+package com.it10x.foodappgstav5_1.data.local.entities
+import androidx.room.Entity
+import androidx.room.Index
+import androidx.room.PrimaryKey
+
+@Entity(
+    tableName = "pos_order_master",
+    indices = [
+        Index(value = ["syncStatus"]),
+        Index(value = ["createdAt"]),
+        Index(value = ["orderType"])
+    ]
+)
+data class PosOrderMasterEntity(
+
+    // =====================================================
+    // CORE IDENTIFIERS
+    // =====================================================
+    @PrimaryKey
+    val id: String,                 // UUID (generated on POS)
+
+    val srNo: Int,                  // Daily running number (POS)
+    val orderType: String,          // DINE_IN | TAKEAWAY | DELIVERY
+    val tableNo: String?,           // Only for DINE_IN
+
+    // =====================================================
+    // AMOUNTS (FINAL VALUES ONLY)
+    // =====================================================
+    val itemTotal: Double,          // Sum of items before tax
+    val taxTotal: Double,           // Total tax
+    val discountTotal: Double,      // Manual / item discount
+    val grandTotal: Double,         // Final payable amount
+
+    // =====================================================
+    // PAYMENT
+    // =====================================================
+    val paymentType: String,        // CASH | CARD | UPI
+    val paymentStatus: String,      // PAID | PENDING
+
+    // =====================================================
+    // ORDER STATE
+    // =====================================================
+    val orderStatus: String,        // NEW | ACCEPTED | COMPLETED | CANCELLED
+
+    // =====================================================
+    // SOURCE & DEVICE META (SYNC CRITICAL)
+    // =====================================================
+    val source: String = "POS",     // Always POS
+    val deviceId: String,           // Unique per device
+    val deviceName: String?,        // Optional (Tablet-1)
+    val appVersion: String?,        // App version used
+
+    // =====================================================
+    // TIMING
+    // =====================================================
+    val createdAt: Long,            // System.currentTimeMillis()
+    val updatedAt: Long?,           // Last local update
+
+    // =====================================================
+    // SYNC CONTROL
+    // =====================================================
+    val syncStatus: String,         // PENDING | SYNCED | FAILED
+    val lastSyncedAt: Long?,        // Timestamp after successful sync
+
+    // =====================================================
+    // EXTRA (SAFE EXTENSION)
+    // =====================================================
+    val notes: String?              // Optional POS notes
+)
