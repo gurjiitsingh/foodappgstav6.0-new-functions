@@ -7,13 +7,11 @@ import com.it10x.foodappgstav5_1.data.local.entities.PosCartEntity
 import com.it10x.foodappgstav5_1.data.local.entities.PosOrderItemEntity
 import com.it10x.foodappgstav5_1.data.local.entities.PosOrderMasterEntity
 import com.it10x.foodappgstav5_1.data.local.repository.POSOrdersRepository
+import com.it10x.foodappgstav5_1.printer.PrintOrderBuilder
 import com.it10x.foodappgstav5_1.printer.PrinterManager
 import com.it10x.foodappgstav5_1.data.PrinterRole
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.flow.flow
+import com.it10x.foodappgstav5_1.printer.ReceiptFormatter
+import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import java.util.UUID
 import java.util.concurrent.atomic.AtomicInteger
@@ -23,9 +21,6 @@ class POSOrdersViewModel(
     private val printerManager: PrinterManager
 ) : ViewModel() {
 
-    fun getOrderMaster(orderId: String): Flow<PosOrderMasterEntity?> = flow {
-        emit(repository.getOrderById(orderId))
-    }
     val orders: StateFlow<List<PosOrderMasterEntity>> get() = _orders
     private val _orders = MutableStateFlow<List<PosOrderMasterEntity>>(emptyList())
 
@@ -34,7 +29,7 @@ class POSOrdersViewModel(
 
     val pageIndex = MutableStateFlow(0)
     private val limit = 10
-    private val srNoCounter = AtomicInteger(1) // Daily running number
+    private val srNoCounter = AtomicInteger(1)
 
     // -------------------------
     // PAGINATION
@@ -71,7 +66,6 @@ class POSOrdersViewModel(
         viewModelScope.launch {
             _loading.value = true
 
-            // 1️⃣ Fetch cart (first emission)
             val cartList: List<PosCartEntity> = repository.getCartItems().first()
             if (cartList.isEmpty()) {
                 Log.e("POS", "Cart is empty")
@@ -131,107 +125,84 @@ class POSOrdersViewModel(
     // -------------------------
     private fun autoPrint(order: PosOrderMasterEntity, cartItems: List<PosCartEntity>) {
         viewModelScope.launch {
-            // Billing
-            val billingReceipt = buildBillingReceipt(order, cartItems)
-            printerManager.printText(PrinterRole.BILLING, billingReceipt) { success ->
-                Log.d("POS_PRINT", "Billing printed: $success")
+            // Convert PosCartEntity -> PosOrderItemEntity
+            val items = cartItems.map { cart ->
+                PosOrderItemEntity(
+                    id = UUID.randomUUID().toString(),
+                    orderMasterId = order.id,
+                    productId = cart.productId,
+                    categoryId = cart.categoryId,
+                    parentId = cart.parentId,
+                    isVariant = cart.isVariant,
+                    name = cart.name,
+                    quantity = cart.quantity,
+                    basePrice = cart.basePrice,
+                    itemSubtotal = cart.basePrice * cart.quantity,
+                    taxRate = cart.taxRate,
+                    taxType = cart.taxType,
+                    taxAmountPerItem = 0.0,
+                    taxTotal = 0.0,
+                    finalPricePerItem = cart.basePrice,
+                    finalTotal = cart.basePrice * cart.quantity,
+                    createdAt = System.currentTimeMillis()
+                )
             }
 
-            // Delay 10 sec
-            kotlinx.coroutines.delay(10_000)
+            printOrderStandard(order, items)
+        }
+    }
 
-            // Kitchen
-            val kitchenReceipt = buildKitchenReceipt(order, cartItems)
-            printerManager.printText(PrinterRole.KITCHEN, kitchenReceipt) { success ->
-                Log.d("POS_PRINT", "Kitchen printed: $success")
+    // -------------------------
+    // PRINT ORDERS (AUTO + MANUAL)
+    // -------------------------
+    private fun printOrderStandard(order: PosOrderMasterEntity, items: List<PosOrderItemEntity>) {
+        val printOrder = PrintOrderBuilder.build(order, items)
+
+        // Print Billing
+        printerManager.printText(PrinterRole.BILLING,
+            ReceiptFormatter.billing(printOrder)) { success ->
+            Log.d("POS_PRINT", "Billing printed: $success for order ${order.srNo}")
+        }
+
+        // Small delay then Kitchen
+        viewModelScope.launch {
+            kotlinx.coroutines.delay(150)
+            printerManager.printText(PrinterRole.KITCHEN,
+                ReceiptFormatter.kitchen(printOrder)) { success ->
+                Log.d("POS_PRINT", "Kitchen printed: $success for order ${order.srNo}")
             }
         }
     }
 
     // -------------------------
-    // RECEIPT BUILDERS
+    // ORDER DETAILS
     // -------------------------
-    private fun buildBillingReceipt(order: PosOrderMasterEntity, items: List<PosCartEntity>): String {
-        val alignLeft = "\u001B\u0061\u0000"
-        val itemsBlock = if (items.isEmpty()) "No items found" else {
-            val header =
-                "QTY".padEnd(5) + "ITEM".take(12).padEnd(12) + "PRICE".padStart(7) + "TOTAL".padStart(6)
-            val divider = "-".repeat(32)
-            val lines = items.joinToString("\n") { item ->
-                val qty = item.quantity.toString().padEnd(2)
-                val name = item.name.take(17).padEnd(17)
-                val price = formatAmount(item.basePrice).padStart(6)
-                val total = formatAmount(item.basePrice * item.quantity).padStart(7)
-                qty + name + price + total
-            }
-            "$header\n$divider\n$lines"
-        }
-
-        return buildString {
-            append(alignLeft)
-            append(
-                """
-------------------------------
-FOOD APP 
-------------------------------
-Order No : ${order.srNo}
-Customer : Walk-in
-Date     : ${java.text.SimpleDateFormat("dd-MM-yyyy HH:mm").format(order.createdAt)}
-------------------------------
-$itemsBlock
-------------------------------
-${totalLine("Item Total", order.itemTotal)}
-${totalLine("Discount", order.discountTotal)}
-${totalLine("Tax", order.taxTotal)}
-------------------------------
-${totalLine("GRAND TOTAL", order.grandTotal)}
-------------------------------
-Thank You!
-""".trimIndent()
-            )
-        }
-    }
-
-    private fun buildKitchenReceipt(order: PosOrderMasterEntity, items: List<PosCartEntity>): String {
-        val alignLeft = "\u001B\u0061\u0000"
-        val itemsBlock = if (items.isEmpty()) "No items" else items.joinToString("\n") { "${it.quantity.toString().padEnd(3)} ${it.name}" }
-        return buildString {
-            append(alignLeft)
-            append(
-                """
-******** KITCHEN ********
-Order No : ${order.srNo}
-------------------------
-$itemsBlock
-------------------------
-""".trimIndent()
-            )
-        }
-    }
-
-    // -------------------------
-    // HELPERS
-    // -------------------------
-    private fun totalLine(label: String, value: Double): String {
-        if (value == 0.0) return ""
-        val left = label.padEnd(14)
-        val right = "%.2f".format(value).padStart(18)
-        return left + right
-    }
-
-    private fun formatAmount(value: Double?): String = "%.2f".format(value ?: 0.0)
-
-
-    // -------------------------
-// ORDER DETAILS
-// -------------------------
     fun getOrderProducts(orderId: String): StateFlow<List<PosOrderItemEntity>> {
         val flow = MutableStateFlow<List<PosOrderItemEntity>>(emptyList())
-
         viewModelScope.launch {
             flow.value = repository.getOrderItems(orderId)
         }
-
         return flow
+    }
+
+    // -------------------------
+    // MANUAL PRINT OLD ORDER
+    // -------------------------
+    fun printOrder(orderId: String) {
+        viewModelScope.launch {
+            _loading.value = true
+            try {
+                val order = repository.getOrderById(orderId) ?: return@launch
+                val items = repository.getOrderItems(orderId)
+                if (items.isEmpty()) return@launch
+
+                printOrderStandard(order, items)
+
+            } catch (e: Exception) {
+                Log.e("POS_PRINT", "Error printing order: ${e.message}", e)
+            } finally {
+                _loading.value = false
+            }
+        }
     }
 }

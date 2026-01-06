@@ -54,6 +54,7 @@ class POSOrdersRepository(
             val taxRate = cart.taxRate ?: 0.0
             val taxType = cart.taxType ?: "inclusive"
             val itemSubtotal = cart.basePrice * cart.quantity
+
             val taxAmount = if (taxType == "exclusive") cart.basePrice * (taxRate / 100) else 0.0
             val finalPricePerItem = cart.basePrice + taxAmount
             val finalTotal = finalPricePerItem * cart.quantity

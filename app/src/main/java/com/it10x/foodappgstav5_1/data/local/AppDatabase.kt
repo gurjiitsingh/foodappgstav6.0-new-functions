@@ -14,7 +14,7 @@ import com.it10x.foodappgstav5_1.data.local.entities.*
         PosOrderItemEntity::class,
         PosCartEntity::class
     ],
-    version = 16
+    version = 18
 )
 abstract class AppDatabase : RoomDatabase() {
 

@@ -88,7 +88,7 @@ fun LocalOrdersScreen(
                             navController.navigate("local_order_detail/${order.id}")
                         },
                         onPrint = {
-                            // Optional: viewModel.printOrder(order.id)
+                            viewModel.printOrder(order.id)
                         }
                     )
                     Divider(color = Color(0xFFEEEEEE))

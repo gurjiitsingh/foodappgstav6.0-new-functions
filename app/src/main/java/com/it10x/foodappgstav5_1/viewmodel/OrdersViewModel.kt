@@ -12,7 +12,8 @@ import com.it10x.foodappgstav5_1.printer.PrinterManager
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
-
+import com.it10x.foodappgstav5_1.printer.FirestorePrintMapper
+import com.it10x.foodappgstav5_1.printer.ReceiptFormatter
 class OrdersViewModel(
     private val printerManager: PrinterManager
 ) : ViewModel() {
@@ -39,9 +40,17 @@ fun printOrder(order: OrderMasterData) {
             return@launch
         }
 
-        val billingReceipt = buildBillingReceipt(order, items)
-        val kitchenReceipt = buildKitchenReceipt(order, items)
+//        val billingReceipt = buildBillingReceipt(order, items)
+//        val kitchenReceipt = buildKitchenReceipt(order, items)
 
+
+        val printOrder = FirestorePrintMapper.map(order, items)
+
+        val billingReceipt =
+            ReceiptFormatter.billing(printOrder)
+
+        val kitchenReceipt =
+            ReceiptFormatter.kitchen(printOrder)
 
         // ✅ BILLING
         printerManager.printText(PrinterRole.BILLING, billingReceipt) { success ->
