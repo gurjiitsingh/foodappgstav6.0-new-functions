@@ -153,6 +153,7 @@ fun NavigationHost(
         // ---------------- ONLINE ORDERS ----------------
         composable("orders") {
             OrdersScreen(
+
                 printerManager = printerManager,
                 ordersViewModel = ordersViewModel,
                 realtimeOrdersViewModel = realtimeOrdersViewModel

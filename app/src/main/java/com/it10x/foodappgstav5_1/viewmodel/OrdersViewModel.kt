@@ -19,6 +19,21 @@ class OrdersViewModel(
 ) : ViewModel() {
 
     private val repo = OrdersRepository()
+
+
+    suspend fun getOrderItems(orderId: String): List<OrderProductData> {
+        return repo.getOrderProducts(orderId)
+    }
+
+    private val _orderItems = MutableStateFlow<Map<String, List<OrderProductData>>>(emptyMap())
+    val orderItems: StateFlow<Map<String, List<OrderProductData>>> = _orderItems
+
+    fun loadOrderItems(orderId: String) {
+        viewModelScope.launch {
+            val items = repo.getOrderProducts(orderId)
+            _orderItems.value = _orderItems.value + (orderId to items)
+        }
+    }
     val pageIndex = MutableStateFlow(0)
     private val _orders = MutableStateFlow<List<OrderMasterData>>(emptyList())
     val orders: StateFlow<List<OrderMasterData>> = _orders

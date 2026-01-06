@@ -192,14 +192,33 @@ class POSOrdersViewModel(
         viewModelScope.launch {
             _loading.value = true
             try {
-                val order = repository.getOrderById(orderId) ?: return@launch
+
+                Log.d("POS_PRINT", "Print requested for orderId=$orderId")
+
+                val order = repository.getOrderById(orderId)
+                if (order == null) {
+                    Log.e("POS_PRINT", "Order NOT FOUND for orderId=$orderId")
+                    return@launch
+                }
+
                 val items = repository.getOrderItems(orderId)
-                if (items.isEmpty()) return@launch
+                if (items.isEmpty()) {
+                    Log.e(
+                        "POS_PRINT",
+                        "Order items EMPTY for orderId=$orderId (items=${items.size})"
+                    )
+                    return@launch
+                }
+
+                Log.d(
+                    "POS_PRINT",
+                    "Printing order srNo=${order.srNo}, items=${items.size}"
+                )
 
                 printOrderStandard(order, items)
 
             } catch (e: Exception) {
-                Log.e("POS_PRINT", "Error printing order: ${e.message}", e)
+                Log.e("POS_PRINT", "Exception while printing order", e)
             } finally {
                 _loading.value = false
             }

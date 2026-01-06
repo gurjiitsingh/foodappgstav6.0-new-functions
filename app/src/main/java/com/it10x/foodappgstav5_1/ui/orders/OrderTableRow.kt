@@ -24,7 +24,7 @@ fun PosOrderTableRow(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-        //    .clickable { onOrderClick() }
+            .clickable { onOrderClick() } // ✅ click to open detail
             .padding(vertical = 8.dp, horizontal = 8.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -36,7 +36,7 @@ fun PosOrderTableRow(
             style = MaterialTheme.typography.bodySmall
         )
 
-        // Order Type (fallback safe)
+        // Order Type
         Text(
             text = order.source ?: "POS",
             modifier = Modifier.weight(0.22f),
@@ -45,7 +45,7 @@ fun PosOrderTableRow(
 
         // Amount
         Text(
-            text = formatAmount2(order.grandTotal ?: order.grandTotal),
+            text = formatAmount2(order.grandTotal ?: 0.0),
             modifier = Modifier.weight(0.15f),
             fontWeight = FontWeight.Medium
         )
@@ -79,11 +79,8 @@ fun PosOrderTableRow(
         )
 
         IconButton(
-            onClick = {
-                onPrintClick()
-            },
-            modifier = Modifier
-                .weight(0.08f)
+            onClick = { onPrintClick() },
+            modifier = Modifier.weight(0.08f)
         ) {
             Icon(
                 imageVector = Icons.Filled.Print,
@@ -92,11 +89,11 @@ fun PosOrderTableRow(
             )
         }
 
-
     }
 
     Divider()
 }
+
 
 private fun formatPosTime(timestamp: Long): String {
     if (timestamp == 0L) return "-"
