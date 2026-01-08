@@ -93,7 +93,7 @@ Bhogpur to Bholath Road
 Vill Bhatnura Lubana
 M: 99144-74660
 ------------------------------
-Order No : ${order.srNo}
+Order No : ${order.srno}
 Date     : ${formatDate(order.createdAt)}
 Type     : ${order.orderType}
 ------------------------------
@@ -134,7 +134,7 @@ Thank You!
             append(
                 """
 ******** KITCHEN ********
-Order No : ${order.srNo}
+Order No : ${order.srno}
 Type     : ${order.orderType}
 ------------------------
 $lines

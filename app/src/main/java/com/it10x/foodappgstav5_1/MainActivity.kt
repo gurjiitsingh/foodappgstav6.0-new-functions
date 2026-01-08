@@ -103,9 +103,9 @@ class MainActivity : ComponentActivity() {
                 })
 
             // Start Firestore listener ONCE
-            LaunchedEffect(Unit) {
-                realtimeOrdersVM.startListening()
-            }
+//            LaunchedEffect(Unit) {
+//                realtimeOrdersVM.startListening()
+//            }
 
             // ------------------------------------
             // UI STATE

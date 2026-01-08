@@ -14,52 +14,74 @@ data class OrderMasterData(
     // CORE IDENTIFIERS
     // =====================================================
     var id: String = "",
-    var userId: String = "",
     var srno: Int = 0,
-    var source: String? = null,      // WEB | POS | APP
+    var source: String? = null,
 
     // =====================================================
     // CUSTOMER
     // =====================================================
+    var customerId: String? = null,   // ✅ NEW
     var customerName: String = "",
     var email: String = "",
     var addressId: String = "",
-    var customerPhone: String? = null, // optional, recommended for delivery/online
+    var customerPhone: String? = null,
+
+    // =====================================================
+    // CUSTOMER ADDRESS (PRINT SNAPSHOT)
+    // =====================================================
+    var dAddressLine1: String? = null,
+    var dAddressLine2: String? = null,
+    var dCity: String? = null,
+    var dState: String? = null,
+    var dZipcode: String? = null,
+    var dLandmark: String? = null,
 
     // =====================================================
     // ORDER TYPE
     // =====================================================
-    var orderType: String? = null,   // DINE_IN | TAKEAWAY | DELIVERY | ONLINE
-    var tableNo: String? = null,     // Only for DINE_IN
+    var orderType: String? = null,
+    var tableNo: String? = null,
 
     // =====================================================
-    // AMOUNTS (FINAL)
+    // AMOUNTS
     // =====================================================
-    var itemTotal: Double = 0.0,          // total items cost before any discount or tax
-    var subTotal: Double? = null,         // after discounts
-    var discountTotal: Double? = null,    // total discounts applied
-    var taxAfterDiscount: Double? = null, // tax after discount
-    var deliveryFee: Double? = null,      // delivery charges
-    var grandTotal: Double? = null,       // final payable
+    var itemTotal: Double = 0.0,
+    var subTotal: Double? = null,
+    var discountTotal: Double? = null,
+    var taxTotal: Double? = null,
+    var deliveryFee: Double? = null,
+    var grandTotal: Double? = null,
 
     // =====================================================
     // PAYMENT
     // =====================================================
     var paymentType: String = "",
-    var paymentStatus: String? = null,  // PAID | PENDING | FAILED | REFUNDED
+    var paymentStatus: String? = null,
 
     // =====================================================
     // ORDER FLOW
     // =====================================================
-    var orderStatus: String? = null,   // NEW | SCHEDULED | ACCEPTED | PREPARING | READY | COMPLETED | CANCELLED
+    var orderStatus: String? = null,
+
+    // =====================================================
+    // OUTLET (MULTI-LOCATION)
+    // =====================================================
+    var outletId: String? = null,
+    var outletName: String? = null,
+
+    // =====================================================
+    // POS HELPERS
+    // =====================================================
+    var productsCount: Int? = null,
+    var notes: String? = null,
 
     // =====================================================
     // TIMESTAMPS
     // =====================================================
-    var createdAt: Timestamp? = null,  // Firestore server timestamp
+    var createdAt: Timestamp? = null,
 
     // =====================================================
-    // AUTOMATION FLAGS
+    // AUTOMATION
     // =====================================================
     var printed: Boolean? = null,
     var acknowledged: Boolean? = null,
@@ -67,12 +89,17 @@ data class OrderMasterData(
     // =====================================================
     // SYNC CONTROL
     // =====================================================
-    var syncStatus: String? = null,       // PENDING | SYNCED | FAILED
-    //OLD SYSTEM
-    var calculatedPickUpDiscountL: Double? = null,
-    var flatDiscount: Double? = null,
-    var calCouponDiscount: Double? = null,
+    var syncStatus: String? = null,
+
+    // =====================================================
+    // LEGACY (KEEP)
+    // =====================================================
+
+   var couponFlat: Double? = null,
+   var pickUpDiscount: Double? = null,
+   var couponPercent: Double? = null,
 )
+
 
 
 
@@ -88,117 +115,4 @@ fun OrderMasterData.formattedTime(): String {
     val sdf = java.text.SimpleDateFormat("dd/MM/yyyy hh:mm a", java.util.Locale.getDefault())
     return sdf.format(java.util.Date(millis))
 }
-
-//package com.it10x.foodappgstav5_1.data.models
-//
-//import com.google.firebase.Timestamp
-//
-///**
-// * OrderMasterData
-// *
-// * - Legacy fields are kept for backward compatibility
-// * - New clean fields are OPTIONAL (nullable)
-// * - Android should prefer NEW fields when available
-// */
-//data class OrderMasterData(
-//
-//    // --------------------------------------------------
-//    // BASIC IDENTIFIERS
-//    // --------------------------------------------------
-//    var id: String = "",
-//    var customerName: String = "",
-//    var email: String = "",
-//    var userId: String = "",
-//    var addressId: String = "",
-//
-//    // --------------------------------------------------
-//    // ORDER META
-//    // --------------------------------------------------
-//    var srno: Int = 0,
-//    var timeId: String = "",
-//    var time: String = "",
-//    var paymentType: String = "",
-//
-//    /**
-//     * LEGACY STATUS
-//     * (used earlier for payment state like COMPLETED / PENDING)
-//     */
-//    var status: String = "",
-//
-//    // --------------------------------------------------
-//    // LEGACY TOTALS (DO NOT REMOVE)
-//    // --------------------------------------------------
-//    var itemTotal: Double = 0.0,                 // before discount & tax
-//    var endTotalG: Double = 0.0,                  // legacy final total
-//    var finalGrandTotal: Double = 0.0,            // legacy final total
-//
-//    var deliveryCost: Double = 0.0,
-//    var totalDiscountG: Double = 0.0,
-//    var flatDiscount: Double = 0.0,
-//    var calculatedPickUpDiscountL: Double = 0.0,
-//    var calCouponDiscount: Double = 0.0,
-//
-//    var couponDiscountPercentL: Double = 0.0,
-//    var pickUpDiscountPercentL: Double = 0.0,
-//    var couponCode: String? = null,
-//
-//    /**
-//     * LEGACY TAX (raw / before discount)
-//     */
-//    var totalTax: Double = 0.0,
-//
-//    // --------------------------------------------------
-//    // ✅ NEW CLEAN TOTAL FIELDS (PREFERRED)
-//    // --------------------------------------------------
-//
-//    /**
-//     * Total of ALL discounts combined
-//     */
-//    var discountTotal: Double? = null,
-//
-//    /**
-//     * Tax BEFORE discount
-//     */
-//    var taxBeforeDiscount: Double? = null,
-//
-//    /**
-//     * Tax AFTER discount (correct tax)
-//     */
-//    var taxAfterDiscount: Double? = null,
-//
-//    /**
-//     * Subtotal AFTER discount, BEFORE tax
-//     */
-//    var subTotal: Double? = null,
-//
-//    /**
-//     * Delivery fee (clean naming)
-//     */
-//    var deliveryFee: Double? = null,
-//
-//    /**
-//     * Final payable amount (correct)
-//     */
-//    var grandTotal: Double? = null,
-//
-//    // --------------------------------------------------
-//    // ✅ ORDER SOURCE & FLOW (NEW SYSTEM)
-//    // --------------------------------------------------
-//    var source: String? = null,          // WEB | POS | APP
-//    var orderStatus: String? = null,     // NEW | ACCEPTED | COMPLETED | CANCELLED
-//    var paymentStatus: String? = null,   // PAID | UNPAID | FAILED
-//
-//    // --------------------------------------------------
-//    // AUTOMATION FLAGS
-//    // --------------------------------------------------
-//    var printed: Boolean? = null,        // auto-print handled
-//    var acknowledged: Boolean? = null,   // sound acknowledged
-//
-//    // --------------------------------------------------
-//    // TIMESTAMPS
-//    // --------------------------------------------------
-//    var createdAt: Timestamp? = null,    // Firestore server timestamp
-//    var createdAtUTC: String? = null     // ISO UTC string
-//)
-
 

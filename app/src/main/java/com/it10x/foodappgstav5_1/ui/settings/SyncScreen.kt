@@ -8,16 +8,21 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.it10x.foodappgstav5_1.viewmodel.ProductSyncViewModel
+import com.it10x.foodappgstav5_1.viewmodel.OutletSyncViewModel
 
 @Composable
 fun SyncScreen(
     navController: NavController,
     onBack: () -> Unit = {}
 ) {
-    val vm: ProductSyncViewModel = viewModel()
+    val productVm: ProductSyncViewModel = viewModel()
+    val outletVm: OutletSyncViewModel = viewModel()
 
-    val syncing by vm.syncing.collectAsState()
-    val status by vm.status.collectAsState()
+    val productSyncing by productVm.syncing.collectAsState()
+    val productStatus by productVm.status.collectAsState()
+
+    val outletSyncing by outletVm.syncing.collectAsState()
+    val outletStatus by outletVm.status.collectAsState()
 
     Column(
         modifier = Modifier
@@ -34,22 +39,41 @@ fun SyncScreen(
 
         Spacer(modifier = Modifier.height(12.dp))
 
-        // ===== SYNC BUTTON =====
+
+        // ===== OUTLET SYNC BUTTON =====
         Button(
-            enabled = !syncing,
-            onClick = { vm.syncAll() },
+            enabled = !outletSyncing && !productSyncing,
+            onClick = { outletVm.syncOutlet() },
             modifier = Modifier.fillMaxWidth()
         ) {
-            Text(if (syncing) "Syncing…" else "Sync Now")
+            Text(if (outletSyncing) "Syncing Outlet…" else "Sync Outlet Config")
         }
 
-        // ===== STATUS =====
         Text(
-            text = status,
+            text = outletStatus,
             style = MaterialTheme.typography.bodyMedium
         )
 
+        Divider()
+
+
+        // ===== PRODUCT + CATEGORY SYNC BUTTON =====
+        Button(
+            enabled = !productSyncing && !outletSyncing,
+            onClick = { productVm.syncAll() },
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text(if (productSyncing) "Syncing Menu…" else "Sync Menu Data")
+        }
+
+        Text(
+            text = productStatus,
+            style = MaterialTheme.typography.bodyMedium
+        )
+
+
         Divider(modifier = Modifier.padding(vertical = 12.dp))
+
 
         // ===== LOCAL DATA VIEW =====
         Text(
@@ -72,6 +96,7 @@ fun SyncScreen(
         }
 
         Spacer(modifier = Modifier.height(24.dp))
+
 
         // ===== BACK BUTTON =====
         OutlinedButton(

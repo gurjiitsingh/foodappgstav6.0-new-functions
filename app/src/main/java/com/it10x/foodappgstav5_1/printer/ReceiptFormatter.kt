@@ -4,24 +4,6 @@ package com.it10x.foodappgstav5_1.printer
 // PRINT MODELS (ONE TRUTH)
 // -----------------------------
 
-data class PrintOrder(
-    val orderNo: String,
-    val customerName: String,
-    val dateTime: String,
-    val items: List<PrintItem>,
-    val itemTotal: Double = 0.0,
-    val deliveryFee: Double = 0.0,
-    val tax: Double = 0.0,
-    val discount: Double = 0.0,
-    val grandTotal: Double
-)
-
-data class PrintItem(
-    val name: String,
-    val quantity: Int,
-    val price: Double = 0.0,
-    val subtotal: Double = 0.0
-)
 
 // -----------------------------
 // RECEIPT FORMATTER
@@ -36,6 +18,8 @@ object ReceiptFormatter {
     // BILLING RECEIPT
     // -----------------------------
     fun billing(order: PrintOrder, title: String = "FOOD APP"): String {
+
+        val headerBlock = buildHeaderBlock(order)
 
         val itemsBlock = if (order.items.isEmpty()) {
             "No items found"
@@ -66,9 +50,7 @@ object ReceiptFormatter {
 ------------------------------
 $title
 ------------------------------
-Order No : ${order.orderNo}
-Customer : ${order.customerName.ifBlank { "Walk-in" }}
-Date     : ${order.dateTime}
+$headerBlock
 ------------------------------
 $itemsBlock
 ------------------------------
@@ -95,7 +77,9 @@ Thank You!
         val itemsBlock = if (order.items.isEmpty()) {
             "No items"
         } else {
-            order.items.joinToString("\n") { "${it.quantity.toString().padEnd(3)} ${it.name}" }
+            order.items.joinToString("\n") {
+                "${it.quantity.toString().padEnd(3)} ${it.name}"
+            }
         }
 
         return buildString {
@@ -112,6 +96,43 @@ $itemsBlock
 """.trimIndent()
             )
         }
+    }
+
+    // -----------------------------
+    // HEADER LOGIC (IMPORTANT)
+    // -----------------------------
+    private fun buildHeaderBlock(order: PrintOrder): String {
+
+        val base = mutableListOf(
+            "Order No : ${order.orderNo}",
+            "Customer : ${order.customerName.ifBlank { "Walk-in" }}",
+            "Date     : ${order.dateTime}"
+        )
+
+        when (order.orderType) {
+
+            "DINE_IN" -> {
+                order.tableNo?.takeIf { it.isNotBlank() }?.let {
+                    base.add("Table    : $it")
+                }
+            }
+
+            "DELIVERY", "ONLINE" -> {
+                listOfNotNull(
+                    order.dAddressLine1,
+                    order.dAddressLine2,
+                    listOfNotNull(order.dCity, order.dZipcode).joinToString(" ").takeIf { it.isNotBlank() },
+                   // order.dState,
+                    order.customerPhone.let { "Phone $it" },
+                    order.dLandmark?.let { "$it" }
+                ).takeIf { it.isNotEmpty() }?.let { addressLines ->
+                    base.add("Address  :")
+                    base.addAll(addressLines)
+                }
+            }
+        }
+
+        return base.joinToString("\n")
     }
 
     // -----------------------------

@@ -14,6 +14,9 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import com.it10x.foodappgstav5_1.printer.FirestorePrintMapper
 import com.it10x.foodappgstav5_1.printer.ReceiptFormatter
+import com.it10x.foodappgstav5_1.data.local.AppDatabaseProvider
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 class OrdersViewModel(
     private val printerManager: PrinterManager
 ) : ViewModel() {
@@ -46,44 +49,73 @@ class OrdersViewModel(
     // -----------------------------
     // PRINT ORDER (KITCHEN + BILLING)
     // -----------------------------
-fun printOrder(order: OrderMasterData) {
-    viewModelScope.launch {
-        val items = repo.getOrderProducts(order.id)
+    fun printOrder(order: OrderMasterData) {
 
-        if (items.isEmpty()) {
-            Log.e("PRINT", "No items for order ${order.srno}")
-            return@launch
+        Log.d("PRINT_SOURCE", "🔥 OrdersViewModel.printOrder CALLED")
+        viewModelScope.launch {
+
+            val items = repo.getOrderProducts(order.id)
+
+            if (items.isEmpty()) {
+                Log.e("PRINT", "No items for order ${order.srno}")
+                return@launch
+            }
+
+            val printOrder = FirestorePrintMapper.map(order, items)
+
+            val outlet = withContext(Dispatchers.IO) {
+                AppDatabaseProvider
+                    .get(printerManager.appContext())
+                    .outletDao()
+                    .getOutlet()
+            }
+
+            val outletTitle = if (outlet != null) {
+                listOfNotNull(
+                    outlet.outletName.takeIf { it.isNotBlank() },
+
+                    // ADDRESS
+                    outlet.addressLine1.takeIf { it.isNotBlank() },
+                    outlet.addressLine2?.takeIf { it.isNotBlank() },
+                    outlet.addressLine3?.takeIf { it.isNotBlank() },
+                    outlet.city.takeIf { it.isNotBlank() },
+
+                    // CONTACT
+                    outlet.phone.takeIf { it.isNotBlank() }?.let { "Contact No.: $it," },
+                    outlet.phone2?.takeIf { it.isNotBlank() }?.let { "$it" },
+                    outlet.email?.takeIf { it.isNotBlank() },
+
+                    // WEB
+                    outlet.web?.takeIf { it.isNotBlank() },
+
+                    // FOOTER NOTE
+                    outlet.footerNote?.takeIf { it.isNotBlank() },
+                    // TAX
+                    outlet.gstVatNumber?.takeIf { it.isNotBlank() }?.let { "GST: $it" }
+                ).joinToString("\n")
+            } else {
+                "FOOD APP"
+            }
+
+
+            val billingReceipt =
+                ReceiptFormatter.billing(printOrder, title = outletTitle)
+
+            val kitchenReceipt =
+                ReceiptFormatter.kitchen(printOrder)
+
+            printerManager.printText(PrinterRole.BILLING, billingReceipt) {
+                Log.d("PRINT", "Billing print success=$it")
+            }
+
+            kotlinx.coroutines.delay(10_000)
+
+            printerManager.printText(PrinterRole.KITCHEN, kitchenReceipt) {
+                Log.d("PRINT", "Kitchen print success=$it")
+            }
         }
-
-//        val billingReceipt = buildBillingReceipt(order, items)
-//        val kitchenReceipt = buildKitchenReceipt(order, items)
-
-
-        val printOrder = FirestorePrintMapper.map(order, items)
-
-        val billingReceipt =
-            ReceiptFormatter.billing(printOrder)
-
-        val kitchenReceipt =
-            ReceiptFormatter.kitchen(printOrder)
-
-        // ✅ BILLING
-        printerManager.printText(PrinterRole.BILLING, billingReceipt) { success ->
-            Log.d("PRINT", "Billing print success=$success for order ${order.srno}")
-        }
-
-        // ⏳ 2️⃣ WAIT 20 SECONDS
-        kotlinx.coroutines.delay(10_000)
-
-        // ✅ KITCHEN
-       printerManager.printText(PrinterRole.KITCHEN, kitchenReceipt) { success ->
-            Log.d("PRINT", "Kitchen print success=$success for order ${order.srno}")
-
-        }
-
-
     }
-}
+
 
 
 
@@ -172,7 +204,7 @@ fun loadPrevPage() {
             append(
                 """
 ------------------------------
-FOOD APP 
+FOOD APP 4
 ------------------------------
 Order No : ${order.srno}
 Customer : ${order.customerName.ifBlank { "Walk-in" }}
@@ -184,7 +216,7 @@ ${totalLine("Item Total", toDouble(order.itemTotal))}
 ${totalLine("Delivery Cost", toDouble(order.deliveryFee))}
 $discountBlock
 ${totalLine("Sub Total", toDouble(order.subTotal))}
-${totalLine("GST ", toDouble(order.taxAfterDiscount))}
+${totalLine("GST ", toDouble(order.taxTotal))}
 
 ------------------------------
 ${totalLine("GRAND TOTAL", toDouble(order.grandTotal))}
@@ -239,7 +271,7 @@ Thank You!
             append(
                 """
 ------------------------------
-FOOD APP
+FOOD APP 5
 ------------------------------
 
 
@@ -363,9 +395,9 @@ $itemsBlock
     // DISCOUNT BLOCK
     // -----------------------------
     private fun buildDiscountBlock(order: OrderMasterData): String {
-        val pickup = toDouble(order.calculatedPickUpDiscountL)
-        val flat = toDouble(order.flatDiscount)
-        val coupon = toDouble(order.calCouponDiscount)
+        val pickup = toDouble(order.pickUpDiscount)
+        val flat = toDouble(order.couponFlat)
+        val coupon = toDouble(order.couponPercent)
 
         return buildString {
             if (pickup > 0) appendLine(totalLine("Pickup Dis", pickup))

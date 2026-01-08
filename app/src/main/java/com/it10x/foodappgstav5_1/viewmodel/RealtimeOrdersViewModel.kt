@@ -48,18 +48,31 @@ class RealtimeOrdersViewModel(
 
         repo.startListening { newOrder ->
 
-            val current = _realtimeOrders.value
-            if (current.any { it.id == newOrder.id }) return@startListening
+            // ⛔ Ignore POS orders
+            if (newOrder.source == "POS") return@startListening
 
-            _realtimeOrders.value = listOf(newOrder) + current
+            // ⛔ Ignore already printed orders
+            if (newOrder.printed == true) return@startListening
 
-            // 🔔 Sound (only if needed)
+            // ⛔ Ignore OLD orders (CRITICAL FIX)
+            val createdAt = newOrder.createdAt
+            if (createdAt !is Timestamp) return@startListening
+            if (createdAt.seconds <= listeningStartedAt.seconds) return@startListening
+
+            // ⛔ Ignore duplicates already in memory
+            if (_realtimeOrders.value.any { it.id == newOrder.id }) return@startListening
+
+            // ✅ NOW this is truly a NEW order
+            _realtimeOrders.value = listOf(newOrder) + _realtimeOrders.value
+
+            // 🔔 Ring
             playSoundIfOrderIsNew(newOrder)
 
-            // 🖨️ Auto-print (does NOT stop sound)
+            // 🖨 Auto print
             autoPrintManager.onNewOrder(newOrder)
         }
     }
+
 
     // -----------------------------
     // SOUND LOGIC

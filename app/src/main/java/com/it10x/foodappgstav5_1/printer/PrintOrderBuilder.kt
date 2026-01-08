@@ -20,20 +20,41 @@ object PrintOrderBuilder {
         }
 
         return PrintOrder(
-            orderNo = master.srNo.toString(),
+
+            // ---------- CORE ----------
+            orderNo = master.srno.toString(),
             customerName = "Walk-in",
             dateTime = master.createdAt.formatMillis(),
+
+            // ---------- ORDER TYPE ----------
+            orderType = master.orderType,
+            tableNo = master.tableNo,
+
+            // ---------- DELIVERY (POS usually NULL) ----------
+            dAddressLine1 = null,
+            dAddressLine2 = null,
+            dCity = null,
+            dState = null,
+            dZipcode = null,
+            dLandmark = null,
+
+            // ---------- ITEMS ----------
             items = printItems,
+
+            // ---------- TOTALS ----------
             itemTotal = master.itemTotal,
-            deliveryFee = master.deliveryFee ?: 0.0,
-            discount = master.discountTotal,
+            deliveryFee = master.deliveryFee,
             tax = master.taxTotal,
+            discount = master.discountTotal,
             grandTotal = master.grandTotal
         )
     }
 
     private fun Long.formatMillis(): String {
-        val sdf = java.text.SimpleDateFormat("dd/MM/yyyy hh:mm a", java.util.Locale.getDefault())
+        val sdf = java.text.SimpleDateFormat(
+            "dd/MM/yyyy hh:mm a",
+            java.util.Locale.getDefault()
+        )
         return sdf.format(java.util.Date(this))
     }
 }

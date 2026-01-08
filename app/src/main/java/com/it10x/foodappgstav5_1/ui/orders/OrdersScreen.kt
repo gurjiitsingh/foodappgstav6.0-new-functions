@@ -61,8 +61,8 @@ fun OrdersScreen(
             .fillMaxSize()
             .padding(12.dp)
     ) {
-        Text("POS Orders", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-        Spacer(Modifier.height(8.dp))
+//        Text("POS Orders", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+//        Spacer(Modifier.height(8.dp))
 
         when {
             loading && combinedOrders.isEmpty() -> Text("Loading orders...")

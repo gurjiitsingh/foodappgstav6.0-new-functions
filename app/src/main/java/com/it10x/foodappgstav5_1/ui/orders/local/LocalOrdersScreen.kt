@@ -5,6 +5,8 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Print
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -24,8 +26,8 @@ fun LocalOrdersScreen(
     navController: NavController
 ) {
     val orders by viewModel.orders.collectAsState()
+    val loading by viewModel.loading.collectAsState()
 
-    // Load first page when screen appears
     LaunchedEffect(Unit) {
         viewModel.loadFirstPage()
     }
@@ -33,99 +35,138 @@ fun LocalOrdersScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(16.dp)
+            .padding(12.dp)
     ) {
+//        Text(
+//            "Local POS Orders",
+//            style = MaterialTheme.typography.titleLarge,
+//            fontWeight = FontWeight.Bold
+//        )
+//
+//        Spacer(Modifier.height(8.dp))
 
-        Text(
-            text = "Local POS Orders",
-            style = MaterialTheme.typography.headlineSmall,
-            fontWeight = FontWeight.Bold
-        )
+        when {
+            loading && orders.isEmpty() ->
+                Text("Loading orders...")
 
-        Spacer(modifier = Modifier.height(12.dp))
+            orders.isEmpty() ->
+                Text("No local orders found")
 
-        if (orders.isEmpty()) {
-            Box(
-                modifier = Modifier.fillMaxSize(),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    text = "No local orders yet",
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = Color.Gray
-                )
-            }
-        } else {
+            else -> {
+                LocalPosOrderTableHeader()
 
-            // Header
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(Color(0xFFE0E0E0))
-                    .padding(vertical = 8.dp, horizontal = 12.dp),
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Text("Order #", fontWeight = FontWeight.Bold, modifier = Modifier.width(60.dp))
-                Text("Type", fontWeight = FontWeight.Bold, modifier = Modifier.width(80.dp))
-                Text("Table", fontWeight = FontWeight.Bold, modifier = Modifier.width(60.dp))
-                Text("Payment", fontWeight = FontWeight.Bold, modifier = Modifier.width(100.dp))
-                Text("Status", fontWeight = FontWeight.Bold, modifier = Modifier.width(100.dp))
-                Text("Total", fontWeight = FontWeight.Bold, modifier = Modifier.width(80.dp))
-                Text("Date", fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
-                Text("Notes", fontWeight = FontWeight.Bold, modifier = Modifier.width(100.dp))
-                Text("Print", fontWeight = FontWeight.Bold)
-            }
-
-            Divider(color = Color.Gray, thickness = 1.dp)
-
-            LazyColumn(
-                modifier = Modifier.fillMaxSize()
-            ) {
-                items(orders, key = { it.id }) { order ->
-                    LocalOrderRow(
-                        order = order,
-                        onClick = {
-                            navController.navigate("local_order_detail/${order.id}")
-                        },
-                        onPrint = {
-                            viewModel.printOrder(order.id)
-                        }
-                    )
-                    Divider(color = Color(0xFFEEEEEE))
+                LazyColumn {
+                    items(orders, key = { it.id }) { order ->
+                        LocalPosOrderTableRow(
+                            order = order,
+                            onOrderClick = {
+                                navController.navigate("local_order_detail/${order.id}")
+                            },
+                            onPrintClick = {
+                                viewModel.printOrder(order.id)
+                            }
+                        )
+                    }
                 }
             }
         }
     }
 }
 
+
 @Composable
-private fun LocalOrderRow(
+fun LocalPosOrderTableHeader() {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(Color(0xFFEFEFEF))
+            .padding(vertical = 8.dp, horizontal = 8.dp)
+    ) {
+        HeaderCell("Order#", 0.14f)
+        HeaderCell("Type", 0.18f)
+        HeaderCell("Amount", 0.16f)
+        HeaderCell("Payment", 0.18f)
+        HeaderCell("Status", 0.18f)
+        HeaderCell("Time", 0.16f)
+    }
+}
+
+@Composable
+private fun RowScope.HeaderCell(text: String, weight: Float) {
+    Text(
+        text = text,
+        modifier = Modifier.weight(weight),
+        fontWeight = FontWeight.Bold,
+        style = MaterialTheme.typography.labelSmall
+    )
+}
+
+
+@Composable
+fun LocalPosOrderTableRow(
     order: PosOrderMasterEntity,
-    onClick: () -> Unit,
-    onPrint: () -> Unit
+    onOrderClick: () -> Unit,
+    onPrintClick: () -> Unit
 ) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable { onClick() }
-            .padding(vertical = 8.dp, horizontal = 12.dp),
+            .clickable { onOrderClick() }
+            .padding(vertical = 8.dp, horizontal = 8.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Text(order.srNo.toString(), modifier = Modifier.width(60.dp))
-        Text(order.orderType, modifier = Modifier.width(80.dp))
-        Text(order.tableNo ?: "-", modifier = Modifier.width(60.dp))
-        Text("${order.paymentType} (${order.paymentStatus})", modifier = Modifier.width(100.dp))
-        Text(order.orderStatus, modifier = Modifier.width(100.dp))
-        Text("₹${"%.2f".format(order.grandTotal)}", modifier = Modifier.width(80.dp))
-        Text(formatDate(order.createdAt), modifier = Modifier.weight(1f))
-        Text(order.notes ?: "-", modifier = Modifier.width(100.dp))
-        TextButton(onClick = onPrint) {
-            Text("Print")
+
+        Text("#${order.srno}", modifier = Modifier.weight(0.14f))
+
+        Text(order.orderType, modifier = Modifier.weight(0.18f))
+
+        Text(
+            text = "₹${"%.2f".format(order.grandTotal)}",
+            modifier = Modifier.weight(0.16f),
+            fontWeight = FontWeight.Medium
+        )
+
+        Text(
+            "${order.paymentType} • ${order.paymentStatus}",
+            modifier = Modifier.weight(0.18f),
+            style = MaterialTheme.typography.bodySmall
+        )
+
+        Text(
+            order.orderStatus,
+            modifier = Modifier.weight(0.18f),
+            color = when (order.orderStatus) {
+                "NEW" -> Color(0xFF1976D2)
+                "ACCEPTED" -> Color(0xFF388E3C)
+                "COMPLETED" -> Color(0xFF2E7D32)
+                "CANCELLED" -> Color(0xFFD32F2F)
+                else -> Color.DarkGray
+            }
+        )
+
+        Text(
+            formatLocalTime(order.createdAt),
+            modifier = Modifier.weight(0.12f),
+            style = MaterialTheme.typography.bodySmall
+        )
+
+        IconButton(
+            onClick = onPrintClick,
+            modifier = Modifier.weight(0.04f)
+        ) {
+            Icon(
+                imageVector = Icons.Filled.Print,
+                contentDescription = "Print Order",
+                tint = MaterialTheme.colorScheme.primary
+            )
         }
     }
+
+    Divider()
 }
 
-private fun formatDate(millis: Long): String {
-    val sdf = SimpleDateFormat("dd MMM yyyy, hh:mm a", Locale.getDefault())
+
+private fun formatLocalTime(millis: Long): String {
+    val sdf = SimpleDateFormat("hh:mm a", Locale.getDefault())
     return sdf.format(Date(millis))
 }

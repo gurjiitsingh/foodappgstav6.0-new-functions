@@ -1,4 +1,5 @@
 package com.it10x.foodappgstav5_1.data.local.entities
+
 import androidx.room.Entity
 import androidx.room.Index
 import androidx.room.PrimaryKey
@@ -19,9 +20,26 @@ data class PosOrderMasterEntity(
     @PrimaryKey
     val id: String,                 // UUID (generated on POS)
 
-    val srNo: Int,                  // Daily running number (POS)
-    val orderType: String,          // DINE_IN | TAKEAWAY | DELIVERY
+    val srno: Int,                  // Daily running number (POS)
+    val orderType: String,          // DINE_IN | TAKEAWAY | DELIVERY | ONLINE
     val tableNo: String?,           // Only for DINE_IN
+
+    // =====================================================
+    // CUSTOMER (SNAPSHOT FOR PRINTING)
+    // =====================================================
+    val customerName: String? = null,
+    val customerPhone: String? = null,
+
+    // =====================================================
+    // DELIVERY ADDRESS SNAPSHOT (ONLY FOR DELIVERY / ONLINE)
+    // =====================================================
+    var dAddressLine1: String? = null,
+    var dAddressLine2: String? = null,
+    var dCity: String? = null,
+    var dState: String? = null,
+    var dZipcode: String? = null,
+    var dLandmark: String? = null,
+
 
     // =====================================================
     // AMOUNTS (FINAL VALUES ONLY)
@@ -46,7 +64,7 @@ data class PosOrderMasterEntity(
     // =====================================================
     // SOURCE & DEVICE META (SYNC CRITICAL)
     // =====================================================
-    val source: String = "POS",     // Always POS
+    val source: String = "POS",     // POS | WEB | APP
     val deviceId: String,           // Unique per device
     val deviceName: String?,        // Optional (Tablet-1)
     val appVersion: String?,        // App version used

@@ -83,7 +83,7 @@ fun OrderDetailScreen(
                 Text("Item Total: ${order.itemTotal}", style = MaterialTheme.typography.bodyMedium)
                 order.discountTotal?.let { Text("Discount: $it", style = MaterialTheme.typography.bodyMedium) }
                 order.subTotal?.let { Text("Subtotal: $it", style = MaterialTheme.typography.bodyMedium) }
-                order.taxAfterDiscount?.let { Text("Tax: $it", style = MaterialTheme.typography.bodyMedium) }
+                order.taxTotal?.let { Text("Tax: $it", style = MaterialTheme.typography.bodyMedium) }
                 order.deliveryFee?.let { Text("Delivery Fee: $it", style = MaterialTheme.typography.bodyMedium) }
                 order.grandTotal?.let { Text("Grand Total: $it", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold) }
                 Spacer(Modifier.height(12.dp))

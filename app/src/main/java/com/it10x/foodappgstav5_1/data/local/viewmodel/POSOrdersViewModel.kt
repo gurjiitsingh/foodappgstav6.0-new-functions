@@ -16,6 +16,9 @@ import kotlinx.coroutines.launch
 import java.util.UUID
 import java.util.concurrent.atomic.AtomicInteger
 
+import com.it10x.foodappgstav5_1.data.local.AppDatabaseProvider
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 class POSOrdersViewModel(
     private val repository: POSOrdersRepository,
     private val printerManager: PrinterManager
@@ -76,7 +79,7 @@ class POSOrdersViewModel(
             try {
                 val now = System.currentTimeMillis()
                 val orderId = UUID.randomUUID().toString()
-                val srNo = srNoCounter.getAndIncrement()
+                val srno = srNoCounter.getAndIncrement()
 
                 // 2️⃣ Calculate totals
                 val itemTotal = OrderCalculator.subtotal(cartList)
@@ -86,7 +89,7 @@ class POSOrdersViewModel(
                 // 3️⃣ Create master entity
                 val orderMaster = PosOrderMasterEntity(
                     id = orderId,
-                    srNo = srNo,
+                    srno = srno,
                     orderType = orderType,
                     tableNo = tableNo,
                     itemTotal = itemTotal,
@@ -155,24 +158,88 @@ class POSOrdersViewModel(
     // -------------------------
     // PRINT ORDERS (AUTO + MANUAL)
     // -------------------------
-    private fun printOrderStandard(order: PosOrderMasterEntity, items: List<PosOrderItemEntity>) {
-        val printOrder = PrintOrderBuilder.build(order, items)
+    private fun printOrderStandard(
+        order: PosOrderMasterEntity,
+        items: List<PosOrderItemEntity>
+    ) {
+        Log.d("PRINT_SOURCE", "🟢 POSOrdersViewModel.printOrderStandard CALLED")
 
-        // Print Billing
-        printerManager.printText(PrinterRole.BILLING,
-            ReceiptFormatter.billing(printOrder)) { success ->
-            Log.d("POS_PRINT", "Billing printed: $success for order ${order.srNo}")
-        }
-
-        // Small delay then Kitchen
         viewModelScope.launch {
-            kotlinx.coroutines.delay(150)
-            printerManager.printText(PrinterRole.KITCHEN,
-                ReceiptFormatter.kitchen(printOrder)) { success ->
-                Log.d("POS_PRINT", "Kitchen printed: $success for order ${order.srNo}")
+
+            Log.d("OUTLET_PRINT", "📨 Building PrintOrder…")
+
+            val printOrder = PrintOrderBuilder.build(order, items)
+
+            // ---------------- OUTLET FROM ROOM ----------------
+            val db = AppDatabaseProvider.get(printerManager.appContext())
+            Log.d("OUTLET_DB_PRINT", "DB Path Print = ${db.openHelper.readableDatabase.path}")
+
+            Log.d("OUTLET_PRINT", "🔍 Fetching outlet from Room…")
+
+            val outlet = withContext(Dispatchers.IO) {
+                db.outletDao().getOutlet()
             }
+
+            if (outlet == null) {
+                Log.e("OUTLET_PRINT", "❌ Outlet is NULL — using default title")
+            } else {
+                Log.d("OUTLET_PRINT", "✅ Outlet Loaded")
+                Log.d("OUTLET_PRINT", "name=${outlet.outletName}")
+                Log.d("OUTLET_PRINT", "city=${outlet.city}")
+                Log.d("OUTLET_PRINT", "phone=${outlet.phone}")
+            }
+
+            val outletTitle = if (outlet != null) {
+                listOfNotNull(
+                    outlet.outletName.takeIf { it.isNotBlank() },
+
+                    // ADDRESS
+                    outlet.addressLine1.takeIf { it.isNotBlank() },
+                    outlet.addressLine2?.takeIf { it.isNotBlank() },
+                    outlet.addressLine3?.takeIf { it.isNotBlank() },
+                    outlet.city.takeIf { it.isNotBlank() },
+
+                    // CONTACT
+                    outlet.phone.takeIf { it.isNotBlank() }?.let { "Contact No.: $it" },
+                    outlet.phone2?.takeIf { it.isNotBlank() }?.let { "$it" },
+                    outlet.email?.takeIf { it.isNotBlank() },
+
+                    // WEB
+                    outlet.web?.takeIf { it.isNotBlank() },
+
+                    // FOOTER NOTE
+                    outlet.footerNote?.takeIf { it.isNotBlank() },
+                    // TAX
+                    outlet.gstVatNumber?.takeIf { it.isNotBlank() }?.let { "GST: $it" }
+                ).joinToString("\n")
+            } else {
+                "FOOD APP"
+            }
+
+
+            Log.d("OUTLET_PRINT", "🖨 FINAL TITLE:\n$outletTitle")
+
+            // ---------------- BILLING PRINT ----------------
+            printerManager.printText(
+                PrinterRole.BILLING,
+                ReceiptFormatter.billing(printOrder, title = outletTitle)
+            )
+
+            // SMALL DELAY
+            kotlinx.coroutines.delay(150)
+
+            // ---------------- KITCHEN PRINT ----------------
+            printerManager.printText(
+                PrinterRole.KITCHEN,
+                ReceiptFormatter.kitchen(printOrder)
+            )
         }
     }
+
+
+
+
+
 
     // -------------------------
     // ORDER DETAILS
@@ -212,7 +279,7 @@ class POSOrdersViewModel(
 
                 Log.d(
                     "POS_PRINT",
-                    "Printing order srNo=${order.srNo}, items=${items.size}"
+                    "Printing order srno=${order.srno}, items=${items.size}"
                 )
 
                 printOrderStandard(order, items)

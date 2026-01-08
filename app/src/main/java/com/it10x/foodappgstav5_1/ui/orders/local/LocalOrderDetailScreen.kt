@@ -59,7 +59,7 @@ fun LocalOrderDetailScreen(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
-                        Text("Order #${o.srNo}", fontWeight = FontWeight.Bold)
+                        Text("Order #${o.srno}", fontWeight = FontWeight.Bold)
                         Text(formatDate(o.createdAt), color = Color.Gray)
                     }
 

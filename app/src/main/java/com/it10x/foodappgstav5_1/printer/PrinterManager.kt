@@ -15,7 +15,7 @@ class PrinterManager(
 ) {
 
     private val prefs by lazy { PrinterPreferences(context) }
-
+    fun appContext(): Context = context.applicationContext
     // --------------------------------
     // TEST PRINT (already OK)
     // --------------------------------

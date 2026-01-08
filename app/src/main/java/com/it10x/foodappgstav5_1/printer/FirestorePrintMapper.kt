@@ -21,14 +21,32 @@ object FirestorePrintMapper {
         }
 
         return PrintOrder(
+            // ---------- CORE ----------
             orderNo = order.srno.toString(),
             customerName = order.customerName.ifBlank { "Walk-in" },
             dateTime = order.formattedTime(),
+
+            // ---------- ORDER TYPE ----------
+            orderType = order.orderType,
+            tableNo = order.tableNo,
+
+            // ---------- DELIVERY SNAPSHOT (d*) ----------
+            dAddressLine1 = order.dAddressLine1,
+            dAddressLine2 = order.dAddressLine2,
+            dCity = order.dCity,
+            dState = order.dState,
+            dZipcode = order.dZipcode,
+            customerPhone = order.customerPhone,
+            dLandmark = order.dLandmark,
+
+            // ---------- ITEMS ----------
             items = printItems,
+
+            // ---------- TOTALS ----------
             itemTotal = toDouble(order.itemTotal),
             deliveryFee = toDouble(order.deliveryFee),
-            discount = calculateDiscount(order),
-            tax = toDouble(order.taxAfterDiscount),
+            discount = toDouble(order.discountTotal),
+            tax = toDouble(order.taxTotal),
             grandTotal = toDouble(order.grandTotal)
         )
     }
@@ -43,9 +61,5 @@ object FirestorePrintMapper {
             else -> 0.0
         }
 
-    private fun calculateDiscount(order: OrderMasterData): Double {
-        return toDouble(order.calculatedPickUpDiscountL) +
-                toDouble(order.flatDiscount) +
-                toDouble(order.calCouponDiscount)
-    }
+
 }

@@ -29,9 +29,9 @@ object PosReceiptBuilder {
             append(
                 """
 ------------------------------
-FOOD APP
+FOOD APP 2
 ------------------------------
-Order No : ${order.srNo}
+Order No : ${order.srno}
 Type     : ${order.orderType}
 Table    : ${order.tableNo ?: "-"}
 Payment  : ${order.paymentType}

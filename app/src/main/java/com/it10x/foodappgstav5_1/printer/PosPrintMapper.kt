@@ -22,7 +22,7 @@ object PosPrintMapper {
         }
 
         return PrintOrder(
-            orderNo = order.srNo.toString(),
+            orderNo = order.srno.toString(),
             customerName = "Walk-in", // or order.customerName if you store it
             dateTime = sdf.format(Date(order.createdAt)),
             items = printItems,
