@@ -54,36 +54,78 @@ fun LocalOrderDetailScreen(
             ) {
                 Column(modifier = Modifier.padding(12.dp)) {
 
-                    // Top row: order number + date
+                    // 🔝 Order number + date
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
-                        Text("Order #${o.srno}", fontWeight = FontWeight.Bold)
-                        Text(formatDate(o.createdAt), color = Color.Gray)
+                        Text(
+                            "Order #${o.srno}",
+                            fontWeight = FontWeight.Bold
+                        )
+                        Text(
+                            formatDate(o.createdAt),
+                            color = Color.Gray,
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                    }
+
+                    Spacer(Modifier.height(6.dp))
+
+                    // 🍽 Order type + table
+                    Row {
+                        Text(
+                            "Type: ${o.orderType}",
+                            modifier = Modifier.padding(end = 12.dp)
+                        )
+                        if (!o.tableNo.isNullOrEmpty()) {
+                            Text("Table: ${o.tableNo}")
+                        }
                     }
 
                     Spacer(Modifier.height(4.dp))
 
-                    // Order type and table
-                    Row {
-                        Text("Type: ${o.orderType}", modifier = Modifier.padding(end = 12.dp))
-                        if (!o.tableNo.isNullOrEmpty()) Text("Table: ${o.tableNo}")
+                    // 💳 Payment info
+                    Text(
+                        "Payment: ${o.paymentType} (${o.paymentStatus})",
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+
+                    // 📦 Order status
+                    Text(
+                        "Status: ${o.orderStatus}",
+                        fontWeight = FontWeight.Medium,
+                        color = when (o.orderStatus) {
+                            "NEW" -> Color(0xFF1976D2)
+                            "ACCEPTED" -> Color(0xFF388E3C)
+                            "COMPLETED" -> Color(0xFF2E7D32)
+                            "CANCELLED" -> Color(0xFFD32F2F)
+                            else -> Color.DarkGray
+                        }
+                    )
+
+                    // 🕒 Created time (extra clarity)
+                    Text(
+                        "Created at: ${formatDate(o.createdAt)}",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = Color.Gray
+                    )
+
+                    // 📝 Notes (optional)
+                    if (!o.notes.isNullOrEmpty()) {
+                        Spacer(Modifier.height(4.dp))
+                        Text(
+                            "Notes: ${o.notes}",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = Color.Gray
+                        )
                     }
-
-                    // Payment
-                    Text("Payment: ${o.paymentType} (${o.paymentStatus})")
-
-                    // Status
-                    Text("Status: ${o.orderStatus}")
-
-                    // Notes if available
-                    if (!o.notes.isNullOrEmpty()) Text("Notes: ${o.notes}", color = Color.Gray)
                 }
             }
 
             Spacer(Modifier.height(12.dp))
         }
+
 
         // 🧾 ITEMS
         Text("Items", style = MaterialTheme.typography.titleMedium)
@@ -106,12 +148,12 @@ fun LocalOrderDetailScreen(
         Spacer(Modifier.height(12.dp))
 
         // 🖨 PRINT BUTTON
-        Button(
-            onClick = { viewModel.printOrder() },
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Text("Print Order")
-        }
+//        Button(
+//            onClick = { viewModel.printOrder() },
+//            modifier = Modifier.fillMaxWidth()
+//        ) {
+//            Text("Print Order")
+//        }
     }
 }
 
@@ -120,30 +162,70 @@ fun OrderProductRow(item: PosOrderItemEntity) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 6.dp),
+            .padding(vertical = 8.dp),
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
-        Column {
-            Text(item.name, style = MaterialTheme.typography.bodyMedium)
+
+        Column(modifier = Modifier.weight(1f)) {
+
             Text(
-                "${item.quantity} × ₹${item.basePrice}",
+                item.name,
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.Medium
+            )
+
+            // ✅ VARIANT INDICATOR (SAFE)
+            if (item.isVariant && !item.parentId.isNullOrEmpty()) {
+                Text(
+                    text = "Variant item",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = Color(0xFF616161)
+                )
+            }
+
+            Spacer(Modifier.height(2.dp))
+
+            Text(
+                "${item.quantity} × ₹${"%.2f".format(item.basePrice)}",
                 style = MaterialTheme.typography.bodySmall,
                 color = Color.Gray
             )
+
+            // ✅ TAX INFO (NO RE-CALCULATION)
+            Text(
+                text = "Tax: ${item.taxRate}% (${item.taxType})",
+                style = MaterialTheme.typography.labelSmall,
+                color = Color.Gray
+            )
         }
-        Text("₹${"%.2f".format(item.finalTotal)}", style = MaterialTheme.typography.bodyMedium)
+
+        Column(horizontalAlignment = Alignment.End) {
+            Text(
+                "₹${"%.2f".format(item.finalTotal)}",
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.Medium
+            )
+
+            Text(
+                "₹${"%.2f".format(item.finalPricePerItem)} / item",
+                style = MaterialTheme.typography.labelSmall,
+                color = Color.Gray
+            )
+        }
     }
 }
+
 
 @Composable
 fun OrderTotals(subtotal: Double, tax: Double, grandTotal: Double) {
     Column(modifier = Modifier.fillMaxWidth()) {
-        TotalRow("Subtotal", subtotal)
-        TotalRow("GST", tax)
+        TotalRow("Items Subtotal", subtotal)
+        TotalRow("Total GST", tax)
         Divider(Modifier.padding(vertical = 4.dp))
-        TotalRow("Grand Total", grandTotal, bold = true)
+        TotalRow("Payable Amount", grandTotal, bold = true)
     }
 }
+
 
 @Composable
 fun TotalRow(label: String, value: Double, bold: Boolean = false) {

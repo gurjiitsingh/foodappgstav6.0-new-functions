@@ -37,13 +37,7 @@ fun LocalOrdersScreen(
             .fillMaxSize()
             .padding(12.dp)
     ) {
-//        Text(
-//            "Local POS Orders",
-//            style = MaterialTheme.typography.titleLarge,
-//            fontWeight = FontWeight.Bold
-//        )
-//
-//        Spacer(Modifier.height(8.dp))
+
 
         when {
             loading && orders.isEmpty() ->
@@ -118,8 +112,13 @@ fun LocalPosOrderTableRow(
 
         Text("#${order.srno}", modifier = Modifier.weight(0.14f))
 
-        Text(order.orderType, modifier = Modifier.weight(0.18f))
-
+        val shortType = when (order.orderType.lowercase()) {
+            "DELIVERY" -> "DV"
+            "TAKEAWAY" -> "TA"
+            "DINE_IN", "dine-in", "dine_in" -> "DN"
+            else -> order.orderType.take(2).uppercase()
+        }
+        Text(shortType, modifier = Modifier.weight(0.18f))
         Text(
             text = "₹${"%.2f".format(order.grandTotal)}",
             modifier = Modifier.weight(0.16f),
